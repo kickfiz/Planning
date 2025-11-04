@@ -1,0 +1,212 @@
+@page "/categories"
+@rendermode InteractiveServer
+@using Planning.Models
+@using Planning.Services
+@inject ICategoryService CategoryService
+
+<PageTitle>Categories</PageTitle>
+
+<div class="min-h-screen bg-black text-white">
+    <div class="max-w-6xl mx-auto p-6">
+        <!-- Header -->
+        <div class="mb-8 flex justify-between items-center">
+            <h1 class="text-3xl font-bold">Manage Categories</h1>
+            <button @onclick="OpenAddModal" class="bg-green-500 hover:bg-green-600 px-4 py-2 rounded-md font-medium transition-colors flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Add Category
+            </button>
+        </div>
+
+        @if (isLoading)
+        {
+            <div class="text-center py-8">
+                <p class="text-gray-400">Loading...</p>
+            </div>
+        }
+        else
+        {
+            <!-- Active Categories -->
+            <div class="mb-8">
+                <h2 class="text-xl font-semibold mb-4">Active Categories</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    @foreach (var category in categories.Where(c => !c.IsArchived))
+                    {
+                        <div class="bg-gray-900 rounded-lg p-4 border border-gray-800">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-4 h-4 rounded-full" style="background-color: @category.Color"></div>
+                                    <span class="font-medium">@category.Name</span>
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button @onclick="() => OpenEditModal(category)" class="flex-1 bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded text-sm transition-colors">
+                                    Edit
+                                </button>
+                                <button @onclick="() => ArchiveCategory(category.Id)" class="flex-1 bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded text-sm transition-colors">
+                                    Archive
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Archived Categories -->
+            @if (categories.Any(c => c.IsArchived))
+            {
+                <div class="mb-8">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-400">Archived Categories</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        @foreach (var category in categories.Where(c => c.IsArchived))
+                        {
+                            <div class="bg-gray-900 rounded-lg p-4 border border-gray-800 opacity-60">
+                                <div class="flex items-center justify-between mb-3">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-4 h-4 rounded-full" style="background-color: @category.Color"></div>
+                                        <span class="font-medium">@category.Name</span>
+                                    </div>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button @onclick="() => UnarchiveCategory(category.Id)" class="flex-1 bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded text-sm transition-colors">
+                                        Unarchive
+                                    </button>
+                                    <button @onclick="() => DeleteCategory(category.Id)" class="flex-1 bg-red-900 hover:bg-red-800 px-3 py-1.5 rounded text-sm transition-colors">
+                                        Delete
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+<!-- Modal -->
+@if (showModal)
+{
+    <div class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50" @onclick="CloseModal">
+        <div class="bg-gray-900 rounded-lg p-6 w-full max-w-md border border-gray-800" @onclick:stopPropagation="true">
+            <h3 class="text-xl font-semibold mb-4 text-white">@(editingCategory == null ? "Add Category" : "Edit Category")</h3>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2 text-white">Name</label>
+                    <input @bind="currentCategory.Name" type="text" class="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:border-green-500" />
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium mb-2 text-white">Color</label>
+                    <div class="flex gap-2">
+                        <input @bind="currentCategory.Color" type="color" class="bg-gray-800 border border-gray-700 rounded px-2 py-1 h-10 w-20" />
+                        <input @bind="currentCategory.Color" type="text" class="flex-1 bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:border-green-500" placeholder="#10b981" />
+                    </div>
+                </div>
+
+                <div class="flex gap-3 mt-6">
+                    <button @onclick="SaveCategory" class="flex-1 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded font-medium transition-colors">
+                        Save
+                    </button>
+                    <button @onclick="CloseModal" class="flex-1 bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded font-medium transition-colors">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool isLoading = true;
+    private List<Category> categories = new();
+    private bool showModal = false;
+    private Category currentCategory = new();
+    private Category? editingCategory = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCategories();
+        isLoading = false;
+    }
+
+    private async Task LoadCategories()
+    {
+        categories = await CategoryService.GetAllCategoriesAsync();
+    }
+
+    private void OpenAddModal()
+    {
+        currentCategory = new Category();
+        editingCategory = null;
+        showModal = true;
+    }
+
+    private void OpenEditModal(Category category)
+    {
+        editingCategory = category;
+        currentCategory = new Category
+        {
+            Id = category.Id,
+            Name = category.Name,
+            Color = category.Color,
+            IsArchived = category.IsArchived
+        };
+        showModal = true;
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+        currentCategory = new Category();
+        editingCategory = null;
+    }
+
+    private async Task SaveCategory()
+    {
+        if (string.IsNullOrWhiteSpace(currentCategory.Name))
+            return;
+
+        if (editingCategory == null)
+        {
+            await CategoryService.CreateCategoryAsync(currentCategory);
+        }
+        else
+        {
+            await CategoryService.UpdateCategoryAsync(currentCategory);
+        }
+
+        await LoadCategories();
+        CloseModal();
+    }
+
+    private async Task ArchiveCategory(int id)
+    {
+        await CategoryService.ArchiveCategoryAsync(id);
+        await LoadCategories();
+    }
+
+    private async Task UnarchiveCategory(int id)
+    {
+        await CategoryService.UnarchiveCategoryAsync(id);
+        await LoadCategories();
+    }
+
+    private async Task DeleteCategory(int id)
+    {
+        if (confirm("Are you sure you want to permanently delete this category?"))
+        {
+            await CategoryService.DeleteCategoryAsync(id);
+            await LoadCategories();
+        }
+    }
+
+    private bool confirm(string message)
+    {
+        // In a real app, you'd use a proper confirmation dialog
+        // For now, we'll just return true
+        return true;
+    }
+}
