@@ -1,7 +1,12 @@
 import Database from 'better-sqlite3';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
-const dbPath = path.join(__dirname, '../../..', 'timetracker.db');
+// Get the directory of the current file
+// Go up one level from backend folder to project root
+const dbPath = path.resolve(process.cwd(), '..', 'timetracker.db');
+console.log('Database path:', dbPath);
+console.log('CWD:', process.cwd());
 const db = new Database(dbPath);
 
 // Enable foreign keys

@@ -1,9 +1,13 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { timeEntriesApi, categoriesApi } from '../api';
-import { TimeEntry, Category } from '../types';
+import type { TimeEntry, Category } from '../types';
 import Modal from '../components/Modal';
+import { usePageTitle } from '../hooks/usePageTitle';
 
 export default function Entries() {
+  usePageTitle('Entries');
+  const navigate = useNavigate();
   const [entries, setEntries] = useState<TimeEntry[]>([]);
   const [selectedEntry, setSelectedEntry] = useState<TimeEntry | null>(null);
   const [currentEntry, setCurrentEntry] = useState<TimeEntry>({
@@ -44,26 +48,12 @@ export default function Entries() {
   };
 
   const openAddModal = () => {
-    setCurrentEntry({
-      Date: new Date().toISOString().split('T')[0],
-      Hours: 0,
-      Description: '',
-    });
-    setIsEditMode(false);
-    setShowModal(true);
+    navigate('/task/new');
   };
 
   const openEditModal = () => {
-    if (selectedEntry) {
-      setCurrentEntry({
-        Id: selectedEntry.Id,
-        Date: selectedEntry.Date,
-        Hours: selectedEntry.Hours,
-        Description: selectedEntry.Description,
-        CategoryId: selectedEntry.CategoryId,
-      });
-      setIsEditMode(true);
-      setShowModal(true);
+    if (selectedEntry && selectedEntry.Id) {
+      navigate(`/task/${selectedEntry.Id}`);
     }
   };
 
@@ -184,7 +174,7 @@ export default function Entries() {
               onClick={openAddModal}
               className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded flex items-center gap-2"
             >
-              <span>+</span> Add Entry
+              <span>+</span> Add Task
             </button>
             {selectedEntry && (
               <>
@@ -192,7 +182,7 @@ export default function Entries() {
                   onClick={openEditModal}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center gap-2"
                 >
-                  <span>✎</span> Edit Entry
+                  <span>✎</span> Edit Task
                 </button>
                 <button
                   onClick={deleteEntry}

@@ -82,6 +82,8 @@ router.delete('/:id', (req, res) => {
 router.get('/distribution', (req, res) => {
   const { month, year } = req.query;
 
+  console.log('Distribution params:', { month, year });
+
   let query = `
     SELECT
       COALESCE(c.Name, 'Uncategorized') as CategoryName,
@@ -95,18 +97,29 @@ router.get('/distribution', (req, res) => {
 
   if (month && year) {
     query += ` WHERE strftime('%Y', te.Date) = ? AND strftime('%m', te.Date) = ?`;
-    params.push(year, String(month).padStart(2, '0'));
+    params.push(String(year), String(month).padStart(2, '0'));
   } else if (year) {
     query += ` WHERE strftime('%Y', te.Date) = ?`;
-    params.push(year);
+    params.push(String(year));
   }
 
   query += ` GROUP BY c.Id, c.Name, c.Color HAVING Hours > 0 ORDER BY Hours DESC`;
 
-  const stmt = db.prepare(query);
-  const distribution = stmt.all(...params);
+  console.log('Query:', query);
+  console.log('Params:', params);
 
-  res.json(distribution);
+  const stmt = db.prepare(query);
+  const distribution = stmt.all(...params) as any[];
+
+  const data = distribution.map(row => ({
+    CategoryName: row.CategoryName,
+    Color: row.Color,
+    Hours: Number(row.Hours)
+  }));
+
+  console.log('Distribution result:', data);
+
+  res.json(data);
 });
 
 export default router;

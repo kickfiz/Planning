@@ -3,6 +3,7 @@ import Layout from './components/Layout';
 import Entries from './pages/Entries';
 import Categories from './pages/Categories';
 import Reports from './pages/Reports';
+import TaskDetail from './pages/TaskDetail';
 
 function App() {
   return (
@@ -14,6 +15,8 @@ function App() {
           <Route path="categories" element={<Categories />} />
           <Route path="reports" element={<Reports />} />
         </Route>
+        <Route path="/task/new" element={<TaskDetail />} />
+        <Route path="/task/:id" element={<TaskDetail />} />
       </Routes>
     </BrowserRouter>
   );

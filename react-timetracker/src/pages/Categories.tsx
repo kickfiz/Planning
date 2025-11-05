@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { categoriesApi } from '../api';
-import { Category } from '../types';
+import type { Category } from '../types';
 import Modal from '../components/Modal';
+import { usePageTitle } from '../hooks/usePageTitle';
 
 export default function Categories() {
+  usePageTitle('Categories');
   const [categories, setCategories] = useState<Category[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [currentCategory, setCurrentCategory] = useState<Category>({ Name: '', Color: '#10b981' });

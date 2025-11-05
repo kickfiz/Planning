@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { timeEntriesApi, categoriesApi } from '../api';
-import { MonthlyStats, ChartDataPoint, CategoryDistribution } from '../types';
+import type { MonthlyStats, ChartDataPoint, CategoryDistribution } from '../types';
+import { usePageTitle } from '../hooks/usePageTitle';
 
 export default function Reports() {
+  usePageTitle('Reports');
   const [isLoading, setIsLoading] = useState(true);
   const [showAnnualView, setShowAnnualView] = useState(true);
   const [currentMonth] = useState(new Date());
-  const [currentYear] = useState(new Date().getFullYear());
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
 
   // KPI data
   const [stats, setStats] = useState<MonthlyStats>({ TotalHours: 0, TasksCompleted: 0, AverageDailyHours: 0 });
@@ -18,7 +20,7 @@ export default function Reports() {
 
   useEffect(() => {
     loadReportData();
-  }, [showAnnualView]);
+  }, [showAnnualView, currentYear]);
 
   const loadReportData = async () => {
     try {
@@ -41,39 +43,33 @@ export default function Reports() {
 
   const loadChartData = async () => {
     try {
+      let data: ChartDataPoint[] = [];
+
       if (showAnnualView) {
         // Load annual data (12 months)
         const response = await timeEntriesApi.getAnnualHours(currentYear);
-        setChartData(response.data);
+        console.log('Annual data response:', response.data);
+        data = response.data;
       } else {
-        // Load monthly data (days in current month)
+        // Load monthly data (only days with data)
         const response = await timeEntriesApi.getMonthlyHours(
           currentMonth.getFullYear(),
           currentMonth.getMonth() + 1
         );
-
-        const daysInMonth = new Date(
-          currentMonth.getFullYear(),
-          currentMonth.getMonth() + 1,
-          0
-        ).getDate();
-
-        // Create data points for all days of the month
-        const data = Array.from({ length: daysInMonth }, (_, i) => {
-          const day = i + 1;
-          const dayData = response.data.find((d: any) => d.Day === day);
-          return {
-            Day: day,
-            Hours: dayData ? dayData.Hours : 0,
-          };
-        });
-
-        setChartData(data);
+        console.log('Monthly data response:', response.data);
+        data = response.data;
       }
 
-      // Calculate max value for Y-axis
-      const maxValue = chartData.length > 0 ? Math.max(...chartData.map((d) => d.Hours)) : 0;
-      setMaxChartValue(Math.ceil(maxValue / 10) * 10 || 10);
+      console.log('Processed chart data:', data);
+      setChartData(data);
+
+      // Calculate max value for Y-axis using the new data
+      if (data.length > 0) {
+        const maxValue = Math.max(...data.map((d) => d.Hours));
+        setMaxChartValue(Math.ceil(maxValue / 10) * 10 || 10);
+      } else {
+        setMaxChartValue(10); // Default scale for empty charts
+      }
     } catch (error) {
       console.error('Failed to load chart data:', error);
     }
@@ -136,7 +132,7 @@ export default function Reports() {
             {/* Monthly Performance Overview */}
             <div className="mb-8">
               <h2 className="text-2xl font-bold mb-4">Monthly Performance Overview</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Total Hours Logged */}
                 <div className="bg-gray-900 rounded-lg p-6 border border-gray-800">
                   <div className="flex justify-between items-start mb-2">
@@ -161,27 +157,40 @@ export default function Reports() {
             <div className="mb-8">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-2xl font-bold">Analytics</h2>
-                <div className="flex gap-2 bg-gray-900 p-1 rounded-lg border border-gray-800">
-                  <button
-                    onClick={() => setShowAnnualView(false)}
-                    className={`px-4 py-2 rounded ${
-                      !showAnnualView
-                        ? 'bg-green-500 text-white'
-                        : 'text-gray-400 hover:text-white'
-                    } transition-colors`}
+                <div className="flex gap-3">
+                  {/* Year Selector */}
+                  <select
+                    value={currentYear}
+                    onChange={(e) => setCurrentYear(Number(e.target.value))}
+                    className="bg-gray-900 border border-gray-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
                   >
-                    Monthly
-                  </button>
-                  <button
-                    onClick={() => setShowAnnualView(true)}
-                    className={`px-4 py-2 rounded ${
-                      showAnnualView
-                        ? 'bg-green-500 text-white'
-                        : 'text-gray-400 hover:text-white'
-                    } transition-colors`}
-                  >
-                    Annual
-                  </button>
+                    <option value={2024}>2024</option>
+                    <option value={2025}>2025</option>
+                  </select>
+
+                  {/* View Toggle */}
+                  <div className="flex gap-2 bg-gray-900 p-1 rounded-lg border border-gray-800">
+                    <button
+                      onClick={() => setShowAnnualView(false)}
+                      className={`px-4 py-2 rounded ${
+                        !showAnnualView
+                          ? 'bg-green-500 text-white'
+                          : 'text-gray-400 hover:text-white'
+                      } transition-colors`}
+                    >
+                      Monthly
+                    </button>
+                    <button
+                      onClick={() => setShowAnnualView(true)}
+                      className={`px-4 py-2 rounded ${
+                        showAnnualView
+                          ? 'bg-green-500 text-white'
+                          : 'text-gray-400 hover:text-white'
+                      } transition-colors`}
+                    >
+                      Annual
+                    </button>
+                  </div>
                 </div>
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -216,15 +225,16 @@ export default function Reports() {
                       <div className="ml-8 h-full flex items-end justify-between gap-1">
                         {chartData.map((data, index) => {
                           const height = maxChartValue > 0 ? (data.Hours / maxChartValue) * 100 : 0;
-                          const minHeight = Math.max(height, 2); // Minimum height for visibility
 
                           return (
-                            <div key={index} className="flex-1 flex flex-col items-center">
-                              <div
-                                className="w-full bg-blue-600 rounded-t hover:bg-blue-500 transition-colors"
-                                style={{ height: `${minHeight}%` }}
-                                title={`${getChartLabel(data)}: ${data.Hours} hours`}
-                              ></div>
+                            <div key={index} className="flex-1 flex items-end justify-center h-full">
+                              {data.Hours > 0 && (
+                                <div
+                                  className="w-full bg-blue-600 rounded-t hover:bg-blue-500 transition-colors"
+                                  style={{ height: `${height}%` }}
+                                  title={`${getChartLabel(data)}: ${data.Hours} hours`}
+                                ></div>
+                              )}
                             </div>
                           );
                         })}
@@ -245,7 +255,7 @@ export default function Reports() {
                     </div>
                   )}
 
-                  <div className="mt-6 flex items-center gap-2 text-sm">
+                  <div className="mt-8 pt-4 border-t border-gray-800 flex items-center gap-2 text-sm">
                     <span className="w-3 h-3 bg-blue-600 rounded"></span>
                     <span className="text-gray-400">Hours Logged</span>
                   </div>

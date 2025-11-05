@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { TimeEntry, Category, MonthlyStats, ChartDataPoint, CategoryDistribution } from './types';
+import type { TimeEntry, Category, MonthlyStats, ChartDataPoint, CategoryDistribution } from './types';
 
 const API_URL = 'http://localhost:3001/api';
 

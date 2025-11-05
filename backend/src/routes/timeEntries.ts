@@ -25,7 +25,7 @@ router.get('/month/:year/:month', (req, res) => {
   const entries = rows.map((row: any) => ({
     Id: row.Id,
     Date: row.Date,
-    Hours: row.Hours,
+    Hours: Number(row.Hours),
     Description: row.Description,
     CategoryId: row.CategoryId,
     Category: row.Category_Id ? {
@@ -91,9 +91,13 @@ router.get('/statistics/:year/:month', (req, res) => {
     WHERE strftime('%Y', Date) = ? AND strftime('%m', Date) = ?
   `);
 
-  const stats = stmt.get(year, month.padStart(2, '0'));
+  const stats = stmt.get(year, month.padStart(2, '0')) as any;
 
-  res.json(stats);
+  res.json({
+    TotalHours: Number(stats.TotalHours),
+    TasksCompleted: stats.TasksCompleted,
+    AverageDailyHours: Number(stats.AverageDailyHours)
+  });
 });
 
 // Get annual hours (by month)
@@ -116,14 +120,11 @@ router.get('/annual/:year', (req, res) => {
 
   const rows = stmt.all(year) as any[];
 
-  // Create array with all months (including zeros)
-  const data = months.map((monthName, index) => {
-    const monthData = rows.find(r => r.Month === index + 1);
-    return {
-      MonthName: monthName,
-      Hours: monthData ? monthData.Hours : 0
-    };
-  });
+  // Only return months that have data
+  const data = rows.map(row => ({
+    MonthName: months[row.Month - 1],
+    Hours: Number(row.Hours)
+  }));
 
   res.json(data);
 });
@@ -141,9 +142,14 @@ router.get('/monthly/:year/:month', (req, res) => {
     GROUP BY Day
   `);
 
-  const rows = stmt.all(year, month.padStart(2, '0'));
+  const rows = stmt.all(year, month.padStart(2, '0')) as any[];
 
-  res.json(rows);
+  const data = rows.map(row => ({
+    Day: row.Day,
+    Hours: Number(row.Hours)
+  }));
+
+  res.json(data);
 });
 
 export default router;
