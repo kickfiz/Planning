@@ -17,7 +17,7 @@ export default function Entries() {
   });
   const [showModal, setShowModal] = useState(false);
   const [showQuickAddModal, setShowQuickAddModal] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
+  const [isEditMode] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [categories, setCategories] = useState<Category[]>([]);

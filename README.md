@@ -1,154 +1,205 @@
 # Time Tracker Application
 
-A modern time tracking application built with React and Node.js, migrated from Blazor.
+A full-stack time tracking application with React frontend and Node.js/Express backend.
 
-## Tech Stack
-
-### Frontend
-- **React** with TypeScript
-- **Vite** for fast development
-- **React Router** for navigation
-- **Tailwind CSS** for styling
-- **Axios** for API calls
-
-### Backend
-- **Node.js** with Express
-- **TypeScript**
-- **SQLite** with better-sqlite3
-- **CORS** enabled
-
-## Features
-
-- ⏱️ **Time Entries**: Track your daily work hours with detailed descriptions
-- 📊 **Reports**: View analytics with interactive charts showing hours over time
-- 🏷️ **Categories**: Organize your work with color-coded categories
-- 📈 **Analytics**: Monthly and annual views of your productivity
-- 🎨 **Dark Theme**: Easy on the eyes with a modern dark interface
-
-## Project Structure
+## 📁 Project Structure
 
 ```
 Planning/
-├── backend/                 # Node.js/Express backend
-│   ├── src/
-│   │   ├── routes/         # API routes
-│   │   ├── models/         # TypeScript types
-│   │   ├── database.ts     # Database initialization
-│   │   └── index.ts        # Server entry point
-│   └── package.json
-├── react-timetracker/      # React frontend
-│   ├── src/
-│   │   ├── components/     # Reusable components
-│   │   ├── pages/          # Page components
-│   │   ├── api.ts          # API client
-│   │   └── types.ts        # TypeScript types
-│   └── package.json
-└── timetracker.db          # SQLite database (shared)
+├── apps/                      # Application code
+│   ├── backend/              # Node.js/Express backend
+│   │   ├── src/             # TypeScript source files
+│   │   ├── dist/            # Compiled JavaScript (generated)
+│   │   └── package.json
+│   └── frontend/             # React frontend (Vite + TypeScript)
+│       ├── src/             # React components and pages
+│       ├── dist/            # Production build (generated)
+│       └── package.json
+├── data/                      # Database files
+│   └── timetracker.db
+├── docs/                      # Documentation
+│   ├── README.md            # This file
+│   ├── DEPLOYMENT.md        # Deployment guide
+│   └── license.txt
+├── scripts/                   # Utility scripts
+│   ├── dev/                 # Development scripts
+│   │   ├── start-dev.bat
+│   │   ├── start-dev.sh
+│   │   └── kill-servers.bat
+│   ├── production/          # Production scripts
+│   │   └── start-production.bat
+│   └── service/             # Windows service scripts
+│       ├── install-service.bat
+│       ├── install-service.js
+│       ├── uninstall-service.bat
+│       └── uninstall-service.js
+├── package.json               # Root package.json
+└── .gitignore
+
 ```
 
-## Getting Started
+## 🚀 Quick Start
 
 ### Prerequisites
-
-- Node.js (v16 or higher)
-- npm or yarn
+- Node.js (v18 or higher)
+- npm
 
 ### Installation
 
 1. **Clone the repository**
    ```bash
+   git clone <repository-url>
    cd Planning
    ```
 
-2. **Install backend dependencies**
+2. **Install dependencies**
    ```bash
-   cd backend
+   # Install root dependencies
    npm install
+
+   # Install backend dependencies
+   npm install --prefix apps/backend
+
+   # Install frontend dependencies
+   npm install --prefix apps/frontend
    ```
 
-3. **Install frontend dependencies**
+3. **Start development servers**
    ```bash
-   cd ../react-timetracker
-   npm install
-   ```
-
-### Running the Application
-
-You'll need to run both the backend and frontend servers:
-
-1. **Start the backend server** (in the `backend` directory):
-   ```bash
-   cd backend
    npm run dev
    ```
-   The backend will run on `http://localhost:3001`
 
-2. **Start the frontend development server** (in the `react-timetracker` directory):
-   ```bash
-   cd react-timetracker
-   npm run dev
-   ```
-   The frontend will run on `http://localhost:5173`
+   This will start:
+   - Backend API: http://localhost:3001
+   - Frontend: http://localhost:5173
 
-3. **Open your browser** and navigate to `http://localhost:5173`
+## 📜 Available Scripts
 
-## API Endpoints
-
-### Time Entries
-- `GET /api/time-entries/month/:year/:month` - Get entries by month
-- `POST /api/time-entries` - Create a new entry
-- `PUT /api/time-entries/:id` - Update an entry
-- `DELETE /api/time-entries/:id` - Delete an entry
-- `GET /api/time-entries/statistics/:year/:month` - Get monthly statistics
-- `GET /api/time-entries/annual/:year` - Get annual hours
-- `GET /api/time-entries/monthly/:year/:month` - Get monthly hours by day
-
-### Categories
-- `GET /api/categories` - Get all categories
-- `GET /api/categories/active` - Get active categories
-- `POST /api/categories` - Create a new category
-- `PUT /api/categories/:id` - Update a category
-- `POST /api/categories/:id/archive` - Archive a category
-- `POST /api/categories/:id/unarchive` - Unarchive a category
-- `DELETE /api/categories/:id` - Delete a category
-- `GET /api/categories/distribution` - Get category distribution
-
-## Database
-
-The application uses SQLite with the existing `timetracker.db` database. The database contains two main tables:
-
-- **TimeEntries**: Stores time log entries with date, hours, description, and category
-- **Categories**: Stores category definitions with name, color, and archived status
-
-## Building for Production
-
-### Backend
+### Development
 ```bash
-cd backend
-npm run build
-npm start
+npm run dev          # Start both backend and frontend
+npm run dev:backend  # Start backend only
+npm run dev:frontend # Start frontend only
 ```
+
+### Production
+```bash
+npm run build        # Build both apps
+npm run start        # Start production server
+npm run prod         # Alias for start
+```
+
+## 🛠 Tech Stack
 
 ### Frontend
+- **React 19** - UI framework
+- **TypeScript** - Type safety
+- **Vite** - Build tool and dev server
+- **Tailwind CSS** - Styling
+- **React Router** - Routing
+- **Axios** - HTTP client
+- **date-fns** - Date utilities
+
+### Backend
+- **Node.js** - Runtime
+- **Express 5** - Web framework
+- **TypeScript** - Type safety
+- **better-sqlite3** - Database
+- **CORS** - Cross-origin support
+
+## 🗄 Database
+
+The application uses SQLite for data storage. The database file is located at `data/timetracker.db`.
+
+### Tables
+- **Categories** - Task categories with colors
+- **TimeEntries** - Time tracking entries
+
+## 📚 Documentation
+
+- [Deployment Guide](docs/DEPLOYMENT.md) - How to deploy and run as a Windows service
+- [License](docs/license.txt)
+
+## 🎯 Features
+
+- ✅ Track time entries with dates and hours
+- ✅ Categorize tasks with custom colors
+- ✅ Monthly/yearly filtering
+- ✅ Quick category creation
+- ✅ Edit and delete entries
+- ✅ Responsive dark theme UI
+- ✅ Windows service support (auto-start)
+
+## 🔧 Development
+
+### Project Commands
+
 ```bash
-cd react-timetracker
-npm run build
+# Development
+npm run dev                    # Start dev servers
+npm run dev:backend           # Backend only (port 3001)
+npm run dev:frontend          # Frontend only (port 5173)
+
+# Build
+npm run build                 # Build both apps
+npm run build:backend         # Build backend
+npm run build:frontend        # Build frontend
+
+# Production
+npm run start                 # Start production server
 ```
 
-The production build will be in the `dist` directory.
+### File Structure
 
-## Migration from Blazor
+```
+apps/backend/src/
+├── database.ts              # Database initialization
+├── index.ts                 # Server entry point
+├── routes/
+│   ├── timeEntries.ts      # Time entries endpoints
+│   └── categories.ts       # Categories endpoints
+└── ...
 
-This application is a complete rewrite of the original Blazor application with the following improvements:
+apps/frontend/src/
+├── api/                     # API client
+├── components/              # Reusable components
+├── pages/                   # Page components
+├── hooks/                   # Custom React hooks
+├── types/                   # TypeScript types
+└── App.tsx                 # Root component
+```
 
-- ✅ Modern React architecture with hooks
-- ✅ TypeScript for type safety
-- ✅ RESTful API design
-- ✅ Faster development with Vite
-- ✅ Better separation of concerns (frontend/backend)
-- ✅ Same dark theme and UI design
-- ✅ All original features preserved
+## 🚀 Deployment
 
-## License
+For production deployment instructions, including how to set up as a Windows service, see [DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
-See license.txt for details.
+### Quick Production Setup
+
+1. **Build the application**
+   ```bash
+   npm run build
+   ```
+
+2. **Start production server**
+   ```bash
+   npm run start
+   ```
+
+3. **Or install as Windows Service** (runs on startup)
+   - Right-click `scripts/service/install-service.bat`
+   - Select "Run as administrator"
+
+## 📝 License
+
+See [license.txt](docs/license.txt) for details.
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
+
+---
+
+Made with ❤️ by André Vieira
