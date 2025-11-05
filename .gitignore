@@ -48,6 +48,7 @@ react-timetracker/.env
 # OS files
 .DS_Store
 Thumbs.db
+.claude
 *.sw?
 *.swp
 *.swo
