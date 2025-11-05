@@ -11,7 +11,7 @@ export default function Reports() {
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
 
   // KPI data
-  const [stats, setStats] = useState<MonthlyStats>({ TotalHours: 0, TasksCompleted: 0, AverageDailyHours: 0 });
+  const [stats, setStats] = useState<MonthlyStats>({ TotalHours: 0, WorkingDays: 0, AveragePerDay: 0 });
 
   // Chart data
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
@@ -109,7 +109,7 @@ export default function Reports() {
 
   const getChartLabel = (data: ChartDataPoint): string => {
     if (showAnnualView) {
-      return data.MonthName || '';
+      return data.Month || '';
     } else {
       return String(data.Day || '');
     }
@@ -145,10 +145,10 @@ export default function Reports() {
                 {/* Tasks Completed */}
                 <div className="bg-gray-900 rounded-lg p-6 border border-gray-800">
                   <div className="flex justify-between items-start mb-2">
-                    <span className="text-gray-400 text-sm">Tasks Completed</span>
+                    <span className="text-gray-400 text-sm">Working Days</span>
                     <span className="text-blue-400">☰</span>
                   </div>
-                  <div className="text-3xl font-bold">{stats.TasksCompleted} tasks</div>
+                  <div className="text-3xl font-bold">{stats.WorkingDays} days</div>
                 </div>
               </div>
             </div>

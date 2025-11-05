@@ -32,7 +32,9 @@ apps/backend/.env
 apps/frontend/.env
 
 # Editor directories
-.vscode/
+.vscode/*
+!.vscode/tasks.json
+!.vscode/launch.json
 .idea/
 *.sublime-project
 *.sublime-workspace
@@ -57,3 +59,10 @@ loglevel.log*
 *.tmp
 *.temp
 check-db.js
+
+# Deployment scripts (optional - include if you want to share)
+set-iis-permissions.bat
+kill-backend.bat
+
+# Published output
+publish/

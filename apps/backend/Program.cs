@@ -4,7 +4,12 @@ using TimeTracker.API.Data;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+        options.JsonSerializerOptions.PropertyNamingPolicy = null; // Use PascalCase
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -20,7 +25,9 @@ builder.Services.AddCors(options =>
 });
 
 // Configure SQLite database
-var dbPath = Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "data", "timetracker.db");
+var dbPath = Path.Combine(AppContext.BaseDirectory, "data", "timetracker.db");
+// Ensure data directory exists
+Directory.CreateDirectory(Path.GetDirectoryName(dbPath)!);
 builder.Services.AddDbContext<TimeTrackerDbContext>(options =>
     options.UseSqlite($"Data Source={dbPath}"));
 

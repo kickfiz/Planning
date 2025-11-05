@@ -20,12 +20,11 @@ public class CategoriesController : ControllerBase
     public async Task<ActionResult<IEnumerable<Category>>> GetAll()
     {
         return await _context.Categories
-            .Where(c => !c.IsArchived)
             .OrderBy(c => c.Name)
             .ToListAsync();
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id:int}")]
     public async Task<ActionResult<Category>> GetById(int id)
     {
         var category = await _context.Categories.FindAsync(id);
@@ -34,6 +33,15 @@ public class CategoriesController : ControllerBase
             return NotFound();
 
         return category;
+    }
+
+    [HttpGet("active")]
+    public async Task<ActionResult<IEnumerable<Category>>> GetActive()
+    {
+        return await _context.Categories
+            .Where(c => !c.IsArchived)
+            .OrderBy(c => c.Name)
+            .ToListAsync();
     }
 
     [HttpPost]
@@ -81,7 +89,7 @@ public class CategoriesController : ControllerBase
         return NoContent();
     }
 
-    [HttpPut("{id}/archive")]
+    [HttpPost("{id}/archive")]
     public async Task<IActionResult> Archive(int id)
     {
         var category = await _context.Categories.FindAsync(id);
@@ -92,6 +100,56 @@ public class CategoriesController : ControllerBase
         await _context.SaveChangesAsync();
 
         return NoContent();
+    }
+
+    [HttpPost("{id}/unarchive")]
+    public async Task<IActionResult> Unarchive(int id)
+    {
+        var category = await _context.Categories.FindAsync(id);
+        if (category == null)
+            return NotFound();
+
+        category.IsArchived = false;
+        await _context.SaveChangesAsync();
+
+        return NoContent();
+    }
+
+    [HttpGet("distribution")]
+    public async Task<ActionResult<IEnumerable<object>>> GetDistribution([FromQuery] int? month, [FromQuery] int? year)
+    {
+        var query = _context.TimeEntries.Include(t => t.Category).AsQueryable();
+
+        if (year.HasValue && month.HasValue)
+        {
+            var startDate = new DateTime(year.Value, month.Value, 1).ToString("yyyy-MM-dd");
+            var endDate = new DateTime(year.Value, month.Value, DateTime.DaysInMonth(year.Value, month.Value)).ToString("yyyy-MM-dd");
+            query = query.Where(t => string.Compare(t.Date, startDate) >= 0 && string.Compare(t.Date, endDate) <= 0);
+        }
+
+        var distribution = await query
+            .GroupBy(t => new { t.CategoryId, t.Category!.Name, t.Category.Color })
+            .Select(g => new
+            {
+                CategoryId = g.Key.CategoryId,
+                CategoryName = g.Key.Name,
+                Color = g.Key.Color,
+                Hours = g.Sum(t => t.Hours),
+                Percentage = 0.0 // Will calculate after
+            })
+            .ToListAsync();
+
+        var totalHours = distribution.Sum(d => d.Hours);
+        var result = distribution.Select(d => new
+        {
+            d.CategoryId,
+            d.CategoryName,
+            d.Color,
+            d.Hours,
+            Percentage = totalHours > 0 ? (d.Hours / totalHours) * 100 : 0
+        });
+
+        return Ok(result);
     }
 
     private async Task<bool> CategoryExists(int id)

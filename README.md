@@ -1,126 +1,68 @@
 # Time Tracker Application
 
-A full-stack time tracking application with React frontend and Node.js/Express backend.
+A full-stack time tracking application with React frontend and .NET 9 backend, ready for IIS deployment.
+
+## 🏗️ Architecture
+
+- **Backend**: ASP.NET Core 9 Web API with Entity Framework Core + SQLite
+- **Frontend**: React + TypeScript + Vite + Tailwind CSS
+- **Deployment**: Single-server deployment where .NET serves both API and React app from wwwroot
 
 ## 📁 Project Structure
 
 ```
 Planning/
-├── apps/                      # Application code
-│   ├── backend/              # Node.js/Express backend
-│   │   ├── src/             # TypeScript source files
-│   │   ├── dist/            # Compiled JavaScript (generated)
-│   │   └── package.json
-│   └── frontend/             # React frontend (Vite + TypeScript)
-│       ├── src/             # React components and pages
-│       ├── dist/            # Production build (generated)
-│       └── package.json
-├── data/                      # Database files
+├── apps/
+│   ├── backend/              # .NET Web API
+│   │   ├── Controllers/      # API Controllers
+│   │   ├── Data/            # DbContext
+│   │   ├── Models/          # Entity models
+│   │   ├── Program.cs       # App configuration
+│   │   └── wwwroot/         # React build output (auto-generated)
+│   └── frontend/            # React SPA
+│       ├── src/             # React source code
+│       └── vite.config.ts  # Builds to ../backend/wwwroot
+├── data/                    # SQLite database
 │   └── timetracker.db
-├── docs/                      # Documentation
-│   ├── README.md            # This file
-│   ├── DEPLOYMENT.md        # Deployment guide
-│   └── license.txt
-├── scripts/                   # Utility scripts
-│   ├── dev/                 # Development scripts
-│   │   ├── start-dev.bat
-│   │   ├── start-dev.sh
-│   │   └── kill-servers.bat
-│   ├── production/          # Production scripts
-│   │   └── start-production.bat
-│   └── service/             # Windows service scripts
-│       ├── install-service.bat
-│       ├── install-service.js
-│       ├── uninstall-service.bat
-│       └── uninstall-service.js
-├── package.json               # Root package.json
-└── .gitignore
-
+├── docs/                    # Documentation
+├── build.bat               # Build script
+└── publish.bat             # IIS publish script
 ```
 
 ## 🚀 Quick Start
 
-### Prerequisites
-- Node.js (v18 or higher)
-- npm
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd Planning
-   ```
-
-2. **Install dependencies**
-   ```bash
-   # Install root dependencies
-   npm install
-
-   # Install backend dependencies
-   npm install --prefix apps/backend
-
-   # Install frontend dependencies
-   npm install --prefix apps/frontend
-   ```
-
-3. **Start development servers**
-   ```bash
-   npm run dev
-   ```
-
-   This will start:
-   - Backend API: http://localhost:3001
-   - Frontend: http://localhost:5173
-
-## 📜 Available Scripts
-
 ### Development
+
+**Terminal 1 - Backend:**
 ```bash
-npm run dev          # Start both backend and frontend
-npm run dev:backend  # Start backend only
-npm run dev:frontend # Start frontend only
+cd apps/backend
+dotnet run
 ```
 
-### Production
+**Terminal 2 - Frontend:**
 ```bash
-npm run build        # Build both apps
-npm run start        # Start production server
-npm run prod         # Alias for start
+cd apps/frontend
+npm install    # First time only
+npm run dev
 ```
 
-## 🛠 Tech Stack
+Open http://localhost:5173 in your browser.
 
-### Frontend
-- **React 19** - UI framework
-- **TypeScript** - Type safety
-- **Vite** - Build tool and dev server
-- **Tailwind CSS** - Styling
-- **React Router** - Routing
-- **Axios** - HTTP client
-- **date-fns** - Date utilities
+### Production Build
 
-### Backend
-- **Node.js** - Runtime
-- **Express 5** - Web framework
-- **TypeScript** - Type safety
-- **better-sqlite3** - Database
-- **CORS** - Cross-origin support
+```bash
+build.bat
+```
 
-## 🗄 Database
+### Deploy to IIS
 
-The application uses SQLite for data storage. The database file is located at `data/timetracker.db`.
+```bash
+publish.bat
+```
 
-### Tables
-- **Categories** - Task categories with colors
-- **TimeEntries** - Time tracking entries
+Then copy the `publish/` folder to your IIS website directory.
 
-## 📚 Documentation
-
-- [Deployment Guide](docs/DEPLOYMENT.md) - How to deploy and run as a Windows service
-- [License](docs/license.txt)
-
-## 🎯 Features
+## 🎯 Key Features
 
 - ✅ Track time entries with dates and hours
 - ✅ Categorize tasks with custom colors
@@ -128,78 +70,56 @@ The application uses SQLite for data storage. The database file is located at `d
 - ✅ Quick category creation
 - ✅ Edit and delete entries
 - ✅ Responsive dark theme UI
-- ✅ Windows service support (auto-start)
+- ✅ Single command build and deployment
 
-## 🔧 Development
+## 🛠️ Tech Stack
 
-### Project Commands
+**Backend:** ASP.NET Core 9, Entity Framework Core, SQLite
+**Frontend:** React 19, TypeScript, Vite, Tailwind CSS, React Router
 
-```bash
-# Development
-npm run dev                    # Start dev servers
-npm run dev:backend           # Backend only (port 3001)
-npm run dev:frontend          # Frontend only (port 5173)
+## 📡 API Endpoints
 
-# Build
-npm run build                 # Build both apps
-npm run build:backend         # Build backend
-npm run build:frontend        # Build frontend
+- `GET/POST /api/time-entries` - Time entries
+- `GET /api/time-entries/month/{year}/{month}` - Monthly entries
+- `GET/POST /api/categories` - Categories management
 
-# Production
-npm run start                 # Start production server
-```
+Swagger UI available at `/swagger` in development mode.
 
-### File Structure
+## 🚀 IIS Deployment
 
-```
-apps/backend/src/
-├── database.ts              # Database initialization
-├── index.ts                 # Server entry point
-├── routes/
-│   ├── timeEntries.ts      # Time entries endpoints
-│   └── categories.ts       # Categories endpoints
-└── ...
+1. Run `publish.bat`
+2. Install [ASP.NET Core 9 Runtime](https://dotnet.microsoft.com/download/dotnet/9.0) on server
+3. Copy `publish/` folder contents to IIS website directory
+4. Set Application Pool to "No Managed Code"
+5. Ensure write permissions on `data/` folder
+6. Restart IIS
 
-apps/frontend/src/
-├── api/                     # API client
-├── components/              # Reusable components
-├── pages/                   # Page components
-├── hooks/                   # Custom React hooks
-├── types/                   # TypeScript types
-└── App.tsx                 # Root component
-```
+## 🔧 How It Works
 
-## 🚀 Deployment
+1. **Build Process**: When you build the .NET backend, it automatically runs `npm install` and `npm run build` in the frontend folder
+2. **Frontend Output**: React app builds directly into `apps/backend/wwwroot`
+3. **Single Server**: .NET backend serves both the API (`/api/*`) and the React app from wwwroot
+4. **Client Routing**: The `MapFallbackToFile` ensures React Router works correctly
 
-For production deployment instructions, including how to set up as a Windows service, see [DEPLOYMENT.md](docs/DEPLOYMENT.md).
+## 📝 Configuration
 
-### Quick Production Setup
+### Backend Port
+Check `apps/backend/Properties/launchSettings.json`
 
-1. **Build the application**
-   ```bash
-   npm run build
-   ```
+### Frontend Proxy
+In development, frontend proxies `/api` to backend. Update `apps/frontend/vite.config.ts` if needed.
 
-2. **Start production server**
-   ```bash
-   npm run start
-   ```
+### Database Location
+Configure in `apps/backend/Program.cs` if you need to change the database path.
 
-3. **Or install as Windows Service** (runs on startup)
-   - Right-click `scripts/service/install-service.bat`
-   - Select "Run as administrator"
+## 🐛 Troubleshooting
 
-## 📝 License
+**Build fails with "file is locked"**: Stop all running instances of the backend
 
-See [license.txt](docs/license.txt) for details.
+**React app doesn't update**: Run `npm run build` in the frontend folder manually
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
+**Database errors**: Ensure the `data/` folder exists and has write permissions
 
 ---
 
-Made with ❤️ by André Vieira
+For detailed documentation, see [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)

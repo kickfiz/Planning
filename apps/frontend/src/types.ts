@@ -17,13 +17,13 @@ export interface Category {
 
 export interface MonthlyStats {
   TotalHours: number;
-  TasksCompleted: number;
-  AverageDailyHours: number;
+  WorkingDays: number;
+  AveragePerDay: number;
 }
 
 export interface ChartDataPoint {
-  Day?: number;
-  MonthName?: string;
+  Day?: string;
+  Month?: string;
   Hours: number;
 }
 
@@ -31,4 +31,5 @@ export interface CategoryDistribution {
   CategoryName: string;
   Color: string;
   Hours: number;
+  Percentage: number;
 }
