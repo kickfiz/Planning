@@ -21,10 +21,17 @@ export interface MonthlyStats {
   AveragePerDay: number;
 }
 
+export interface CategoryHours {
+  CategoryName: string;
+  Color: string;
+  Hours: number;
+}
+
 export interface ChartDataPoint {
   Day?: string;
   Month?: string;
   Hours: number;
+  Categories?: CategoryHours[];
 }
 
 export interface CategoryDistribution {

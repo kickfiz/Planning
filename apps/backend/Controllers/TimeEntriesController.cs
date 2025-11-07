@@ -127,6 +127,7 @@ public class TimeEntriesController : ControllerBase
         var endDate = new DateTime(year, 12, 31).ToString("yyyy-MM-dd");
 
         var entries = await _context.TimeEntries
+            .Include(t => t.Category)
             .Where(t => string.Compare(t.Date, startDate) >= 0 && string.Compare(t.Date, endDate) <= 0)
             .ToListAsync();
 
@@ -135,16 +136,30 @@ public class TimeEntriesController : ControllerBase
             .Select(g => new
             {
                 Month = g.Key,
-                Hours = g.Sum(e => e.Hours)
+                Hours = g.Sum(e => e.Hours),
+                Categories = g.GroupBy(e => e.Category)
+                    .Select(cg => new
+                    {
+                        CategoryName = cg.Key?.Name ?? "Uncategorized",
+                        Color = cg.Key?.Color ?? "#6B7280",
+                        Hours = cg.Sum(e => e.Hours)
+                    })
+                    .OrderByDescending(c => c.Hours)
+                    .ToList()
             })
             .OrderBy(x => x.Month)
             .ToList();
 
         // Fill in missing months with 0 hours
-        var result = Enumerable.Range(1, 12).Select(month => new
+        var result = Enumerable.Range(1, 12).Select(month =>
         {
-            Month = new DateTime(year, month, 1).ToString("MMM"),
-            Hours = monthlyData.FirstOrDefault(m => m.Month == month)?.Hours ?? 0
+            var data = monthlyData.FirstOrDefault(m => m.Month == month);
+            return new
+            {
+                Month = new DateTime(year, month, 1).ToString("MMM"),
+                Hours = data?.Hours ?? 0,
+                Categories = (object)(data?.Categories ?? Enumerable.Empty<object>())
+            };
         });
 
         return Ok(result);
@@ -158,6 +173,7 @@ public class TimeEntriesController : ControllerBase
         var endDate = new DateTime(year, month, daysInMonth).ToString("yyyy-MM-dd");
 
         var entries = await _context.TimeEntries
+            .Include(t => t.Category)
             .Where(t => string.Compare(t.Date, startDate) >= 0 && string.Compare(t.Date, endDate) <= 0)
             .ToListAsync();
 
@@ -167,16 +183,30 @@ public class TimeEntriesController : ControllerBase
             {
                 Date = g.Key,
                 Day = DateTime.Parse(g.Key).Day,
-                Hours = g.Sum(e => e.Hours)
+                Hours = g.Sum(e => e.Hours),
+                Categories = g.GroupBy(e => e.Category)
+                    .Select(cg => new
+                    {
+                        CategoryName = cg.Key?.Name ?? "Uncategorized",
+                        Color = cg.Key?.Color ?? "#6B7280",
+                        Hours = cg.Sum(e => e.Hours)
+                    })
+                    .OrderByDescending(c => c.Hours)
+                    .ToList()
             })
             .OrderBy(x => x.Day)
             .ToList();
 
         // Fill in missing days with 0 hours
-        var result = Enumerable.Range(1, daysInMonth).Select(day => new
+        var result = Enumerable.Range(1, daysInMonth).Select(day =>
         {
-            Day = day.ToString(),
-            Hours = dailyData.FirstOrDefault(d => d.Day == day)?.Hours ?? 0
+            var data = dailyData.FirstOrDefault(d => d.Day == day);
+            return new
+            {
+                Day = day.ToString(),
+                Hours = data?.Hours ?? 0,
+                Categories = (object)(data?.Categories ?? Enumerable.Empty<object>())
+            };
         });
 
         return Ok(result);

@@ -137,18 +137,6 @@ npm run build
 
 The production build will be in the `dist` directory.
 
-## Migration from Blazor
-
-This application is a complete rewrite of the original Blazor application with the following improvements:
-
-- ✅ Modern React architecture with hooks
-- ✅ TypeScript for type safety
-- ✅ RESTful API design
-- ✅ Faster development with Vite
-- ✅ Better separation of concerns (frontend/backend)
-- ✅ Same dark theme and UI design
-- ✅ All original features preserved
-
 ## License
 
 See license.txt for details.
