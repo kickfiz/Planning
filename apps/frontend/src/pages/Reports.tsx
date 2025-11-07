@@ -48,7 +48,6 @@ export default function Reports() {
       if (showAnnualView) {
         // Load annual data (12 months)
         const response = await timeEntriesApi.getAnnualHours(currentYear);
-        console.log('Annual data response:', response.data);
         data = response.data;
       } else {
         // Load monthly data (only days with data)
@@ -56,11 +55,9 @@ export default function Reports() {
           currentMonth.getFullYear(),
           currentMonth.getMonth() + 1
         );
-        console.log('Monthly data response:', response.data);
         data = response.data;
       }
 
-      console.log('Processed chart data:', data);
       setChartData(data);
 
       // Calculate max value for Y-axis using the new data

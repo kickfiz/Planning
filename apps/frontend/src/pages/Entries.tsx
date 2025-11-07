@@ -3,7 +3,35 @@ import { useNavigate } from 'react-router-dom';
 import { timeEntriesApi, categoriesApi } from '../api';
 import type { TimeEntry, Category } from '../types';
 import Modal from '../components/Modal';
+import QuickAddCategoryModal from '../components/QuickAddCategoryModal';
 import { usePageTitle } from '../hooks/usePageTitle';
+import ReactMarkdown from 'react-markdown';
+import * as XLSX from 'xlsx';
+
+// Helper function to format date from YYYY-MM-DD to DD/MM/YYYY
+const formatDateDisplay = (dateString: string): string => {
+  const [year, month, day] = dateString.split('-');
+  return `${day}/${month}/${year}`;
+};
+
+// Helper function to get weeks in a month
+const getWeeksInMonth = (year: number, month: number): { label: string; start: number; end: number }[] => {
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const weeks: { label: string; start: number; end: number }[] = [];
+
+  let weekNumber = 1;
+  for (let start = 1; start <= daysInMonth; start += 7) {
+    const end = Math.min(start + 6, daysInMonth);
+    weeks.push({
+      label: `Week ${weekNumber} (${start}-${end})`,
+      start,
+      end,
+    });
+    weekNumber++;
+  }
+
+  return weeks;
+};
 
 export default function Entries() {
   usePageTitle('Entries');
@@ -17,11 +45,15 @@ export default function Entries() {
   });
   const [showModal, setShowModal] = useState(false);
   const [showQuickAddModal, setShowQuickAddModal] = useState(false);
-  const [isEditMode] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedWeek, setSelectedWeek] = useState<string>('all');
   const [categories, setCategories] = useState<Category[]>([]);
-  const [newCategory, setNewCategory] = useState<Category>({ Name: '', Color: '#10b981' });
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportDateRange, setExportDateRange] = useState({
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: new Date().toISOString().split('T')[0],
+  });
 
   useEffect(() => {
     loadCategories();
@@ -69,7 +101,7 @@ export default function Entries() {
   const saveEntry = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      if (isEditMode && currentEntry.Id) {
+      if (currentEntry.Id) {
         await timeEntriesApi.update(currentEntry.Id, currentEntry);
       } else {
         await timeEntriesApi.create(currentEntry);
@@ -92,21 +124,102 @@ export default function Entries() {
     }
   };
 
-  const saveQuickCategory = async () => {
-    if (!newCategory.Name.trim()) return;
-
+  const saveQuickCategory = async (category: Category) => {
     try {
-      const response = await categoriesApi.create(newCategory);
+      const response = await categoriesApi.create(category);
       await loadCategories();
       setCurrentEntry({ ...currentEntry, CategoryId: response.data.Id });
       setShowQuickAddModal(false);
-      setNewCategory({ Name: '', Color: '#10b981' });
     } catch (error) {
       console.error('Failed to create category:', error);
     }
   };
 
-  const totalHours = entries.reduce((sum, entry) => sum + entry.Hours, 0);
+  const handleExport = async () => {
+    try {
+      // Fetch all entries and filter by date range
+      const allEntries: TimeEntry[] = [];
+
+      // Parse date range
+      const startDate = new Date(exportDateRange.startDate);
+      const endDate = new Date(exportDateRange.endDate);
+
+      // Get year and month range
+      const startYear = startDate.getFullYear();
+      const endYear = endDate.getFullYear();
+      const startMonth = startDate.getMonth() + 1;
+      const endMonth = endDate.getMonth() + 1;
+
+      // Fetch data for each month in the range
+      for (let year = startYear; year <= endYear; year++) {
+        const monthStart = year === startYear ? startMonth : 1;
+        const monthEnd = year === endYear ? endMonth : 12;
+
+        for (let month = monthStart; month <= monthEnd; month++) {
+          const response = await timeEntriesApi.getByMonth(year, month);
+          allEntries.push(...response.data);
+        }
+      }
+
+      // Filter entries by exact date range
+      const filteredEntries = allEntries.filter((entry) => {
+        const entryDate = new Date(entry.Date);
+        return entryDate >= startDate && entryDate <= endDate;
+      });
+
+      if (filteredEntries.length === 0) {
+        alert('No entries found in the selected date range.');
+        return;
+      }
+
+      // Sort by date
+      filteredEntries.sort((a, b) => a.Date.localeCompare(b.Date));
+
+      // Prepare data for Excel
+      const excelData = filteredEntries.map((entry) => ({
+        Date: formatDateDisplay(entry.Date),
+        Hours: entry.Hours,
+        Category: entry.Category?.Name || '-',
+        Description: entry.Description.replace(/[*_#`\n]/g, ' ').trim(), // Remove markdown formatting
+      }));
+
+      // Create workbook and worksheet
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Time Entries');
+
+      // Set column widths
+      worksheet['!cols'] = [
+        { wch: 12 }, // Date
+        { wch: 8 },  // Hours
+        { wch: 20 }, // Category
+        { wch: 60 }, // Description
+      ];
+
+      // Generate filename
+      const filename = `TimeEntries_${exportDateRange.startDate}_to_${exportDateRange.endDate}.xlsx`;
+
+      // Save file
+      XLSX.writeFile(workbook, filename);
+
+      setShowExportModal(false);
+    } catch (error) {
+      console.error('Failed to export entries:', error);
+      alert('Failed to export entries. Please try again.');
+    }
+  };
+
+  // Filter entries by selected week
+  const filteredEntries = entries.filter((entry) => {
+    if (selectedWeek === 'all') return true;
+
+    const dayOfMonth = parseInt(entry.Date.split('-')[2], 10);
+    const [start, end] = selectedWeek.split('-').map(Number);
+    return dayOfMonth >= start && dayOfMonth <= end;
+  });
+
+  const totalHours = filteredEntries.reduce((sum, entry) => sum + entry.Hours, 0);
+  const weeks = getWeeksInMonth(selectedYear, selectedMonth);
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -119,13 +232,16 @@ export default function Entries() {
 
         {/* Filters and Actions */}
         <div className="mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-          <div className="flex gap-4">
+          <div className="flex gap-4 flex-wrap">
             {/* Month Filter */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1">Month:</label>
               <select
                 value={selectedMonth}
-                onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                onChange={(e) => {
+                  setSelectedMonth(Number(e.target.value));
+                  setSelectedWeek('all');
+                }}
                 className="bg-gray-900 border border-gray-700 text-white rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
               >
                 {[
@@ -154,7 +270,10 @@ export default function Entries() {
               <label className="block text-sm font-medium text-gray-300 mb-1">Year:</label>
               <select
                 value={selectedYear}
-                onChange={(e) => setSelectedYear(Number(e.target.value))}
+                onChange={(e) => {
+                  setSelectedYear(Number(e.target.value));
+                  setSelectedWeek('all');
+                }}
                 className="bg-gray-900 border border-gray-700 text-white rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
               >
                 {Array.from({ length: 7 }, (_, i) => new Date().getFullYear() - 5 + i).map(
@@ -166,15 +285,52 @@ export default function Entries() {
                 )}
               </select>
             </div>
+
+            {/* Week Filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Week:</label>
+              <select
+                value={selectedWeek}
+                onChange={(e) => setSelectedWeek(e.target.value)}
+                className="bg-gray-900 border border-gray-700 text-white rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+              >
+                <option value="all">All Weeks</option>
+                {weeks.map((week) => (
+                  <option key={week.label} value={`${week.start}-${week.end}`}>
+                    {week.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <button
               onClick={openAddModal}
               className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded flex items-center gap-2"
             >
               <span>+</span> Add Task
+            </button>
+            <button
+              onClick={() => setShowExportModal(true)}
+              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded flex items-center gap-2"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+              Export to Excel
             </button>
             {selectedEntry && (
               <>
@@ -196,9 +352,13 @@ export default function Entries() {
         </div>
 
         {/* Entries Table */}
-        {entries.length === 0 ? (
+        {filteredEntries.length === 0 ? (
           <div className="bg-gray-900 rounded-lg p-8 text-center">
-            <p className="text-gray-400">No entries found for this month.</p>
+            <p className="text-gray-400">
+              {entries.length === 0
+                ? 'No entries found for this month.'
+                : 'No entries found for this week.'}
+            </p>
           </div>
         ) : (
           <>
@@ -221,7 +381,7 @@ export default function Entries() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-800">
-                  {entries.map((entry) => (
+                  {filteredEntries.map((entry) => (
                     <tr
                       key={entry.Id}
                       onClick={() => setSelectedEntry(entry)}
@@ -229,7 +389,7 @@ export default function Entries() {
                         selectedEntry?.Id === entry.Id ? 'bg-gray-800' : ''
                       }`}
                     >
-                      <td className="px-6 py-4 whitespace-nowrap">{entry.Date}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">{formatDateDisplay(entry.Date)}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-green-400">
                         {entry.Hours.toFixed(1)}
                       </td>
@@ -246,7 +406,9 @@ export default function Entries() {
                           <span className="text-gray-500">-</span>
                         )}
                       </td>
-                      <td className="px-6 py-4">{entry.Description}</td>
+                      <td className="px-6 py-4 prose prose-invert prose-sm max-w-none">
+                        <ReactMarkdown>{entry.Description}</ReactMarkdown>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -263,7 +425,7 @@ export default function Entries() {
       </div>
 
       {/* Add/Edit Modal */}
-      <Modal isOpen={showModal} onClose={closeModal} title={isEditMode ? 'Edit Entry' : 'Add Entry'}>
+      <Modal isOpen={showModal} onClose={closeModal} title={currentEntry.Id ? 'Edit Entry' : 'Add Entry'}>
         <form onSubmit={saveEntry}>
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-300 mb-1">Date:</label>
@@ -360,50 +522,70 @@ export default function Entries() {
       </Modal>
 
       {/* Quick Add Category Modal */}
-      <Modal
+      <QuickAddCategoryModal
         isOpen={showQuickAddModal}
         onClose={() => setShowQuickAddModal(false)}
-        title="Quick Add Category"
+        onCategoryAdded={saveQuickCategory}
+      />
+
+      {/* Export Modal */}
+      <Modal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        title="Export to Excel"
       >
         <div className="space-y-4">
+          <p className="text-gray-400 text-sm">
+            Select a date range to export your time entries to an Excel file.
+          </p>
+
           <div>
-            <label className="block text-sm font-medium mb-2 text-white">Name</label>
+            <label className="block text-sm font-medium mb-2 text-white">Start Date</label>
             <input
-              type="text"
-              value={newCategory.Name}
-              onChange={(e) => setNewCategory({ ...newCategory, Name: e.target.value })}
-              className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:border-green-500"
+              type="date"
+              value={exportDateRange.startDate}
+              onChange={(e) =>
+                setExportDateRange({ ...exportDateRange, startDate: e.target.value })
+              }
+              className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:border-purple-500"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2 text-white">Color</label>
-            <div className="flex gap-2">
-              <input
-                type="color"
-                value={newCategory.Color}
-                onChange={(e) => setNewCategory({ ...newCategory, Color: e.target.value })}
-                className="bg-gray-800 border border-gray-700 rounded px-2 py-1 h-10 w-16"
-              />
-              <input
-                type="text"
-                value={newCategory.Color}
-                onChange={(e) => setNewCategory({ ...newCategory, Color: e.target.value })}
-                className="flex-1 bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:border-green-500"
-                placeholder="#10b981"
-              />
-            </div>
+            <label className="block text-sm font-medium mb-2 text-white">End Date</label>
+            <input
+              type="date"
+              value={exportDateRange.endDate}
+              onChange={(e) =>
+                setExportDateRange({ ...exportDateRange, endDate: e.target.value })
+              }
+              className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:border-purple-500"
+            />
           </div>
 
           <div className="flex gap-3 mt-6">
             <button
-              onClick={saveQuickCategory}
-              className="flex-1 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded font-medium transition-colors"
+              onClick={handleExport}
+              className="flex-1 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded font-medium transition-colors flex items-center justify-center gap-2"
             >
-              Add
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-5 h-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+              Export
             </button>
             <button
-              onClick={() => setShowQuickAddModal(false)}
+              onClick={() => setShowExportModal(false)}
               className="flex-1 bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded font-medium transition-colors"
             >
               Cancel

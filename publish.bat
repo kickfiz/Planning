@@ -7,14 +7,14 @@ echo.
 cd apps\backend
 
 echo Publishing .NET project for IIS deployment...
-dotnet publish --configuration Release --output ..\..\publish
+dotnet publish --configuration Release --output C:\Apps\Planning
 
 echo.
 echo ========================================
 echo Publish complete!
 echo ========================================
 echo.
-echo Output location: publish\
+echo Output location: C:\Apps\Planning
 echo.
 echo To deploy to IIS:
 echo 1. Copy the contents of the 'publish' folder to your IIS website directory

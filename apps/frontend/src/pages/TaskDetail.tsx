@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { timeEntriesApi, categoriesApi } from '../api';
 import type { TimeEntry, Category } from '../types';
+import QuickAddCategoryModal from '../components/QuickAddCategoryModal';
 import { usePageTitle } from '../hooks/usePageTitle';
 
 export default function TaskDetail() {
@@ -20,7 +21,6 @@ export default function TaskDetail() {
   const [isLoading, setIsLoading] = useState(isEditMode);
   const [isSaving, setIsSaving] = useState(false);
   const [showQuickAddModal, setShowQuickAddModal] = useState(false);
-  const [newCategory, setNewCategory] = useState<Category>({ Name: '', Color: '#10b981' });
 
   useEffect(() => {
     loadCategories();
@@ -87,15 +87,12 @@ export default function TaskDetail() {
     navigate('/entries');
   };
 
-  const saveQuickCategory = async () => {
-    if (!newCategory.Name.trim()) return;
-
+  const saveQuickCategory = async (category: Category) => {
     try {
-      const response = await categoriesApi.create(newCategory);
+      const response = await categoriesApi.create(category);
       await loadCategories();
       setEntry({ ...entry, CategoryId: response.data.Id });
       setShowQuickAddModal(false);
-      setNewCategory({ Name: '', Color: '#10b981' });
     } catch (error) {
       console.error('Failed to create category:', error);
     }
@@ -283,65 +280,11 @@ export default function TaskDetail() {
       </div>
 
       {/* Quick Add Category Modal */}
-      {showQuickAddModal && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50"
-          onClick={() => setShowQuickAddModal(false)}
-        >
-          <div
-            className="bg-gray-900 rounded-lg p-6 w-full max-w-md border border-gray-800"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="text-2xl text-white font-bold mb-4">Quick Add Category</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2 text-white">Name</label>
-                <input
-                  type="text"
-                  value={newCategory.Name}
-                  onChange={(e) => setNewCategory({ ...newCategory, Name: e.target.value })}
-                  className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:border-green-500"
-                  autoFocus
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2 text-white">Color</label>
-                <div className="flex gap-2">
-                  <input
-                    type="color"
-                    value={newCategory.Color}
-                    onChange={(e) => setNewCategory({ ...newCategory, Color: e.target.value })}
-                    className="bg-gray-800 border border-gray-700 rounded px-2 py-1 h-10 w-16"
-                  />
-                  <input
-                    type="text"
-                    value={newCategory.Color}
-                    onChange={(e) => setNewCategory({ ...newCategory, Color: e.target.value })}
-                    className="flex-1 bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:border-green-500"
-                    placeholder="#10b981"
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-3 mt-6">
-                <button
-                  onClick={saveQuickCategory}
-                  className="flex-1 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded font-medium transition-colors"
-                >
-                  Add
-                </button>
-                <button
-                  onClick={() => setShowQuickAddModal(false)}
-                  className="flex-1 bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded font-medium transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <QuickAddCategoryModal
+        isOpen={showQuickAddModal}
+        onClose={() => setShowQuickAddModal(false)}
+        onCategoryAdded={saveQuickCategory}
+      />
     </div>
   );
 }
